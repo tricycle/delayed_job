@@ -18,8 +18,8 @@ module Delayed
     def start
       say "*** Starting job worker #{Delayed::Job.worker_name}"
 
-      trap('TERM') { say 'Exiting...'; $exit = true }
-      trap('INT')  { say 'Exiting...'; $exit = true }
+      trap_chain('TERM') { say 'Exiting...'; $exit = true }
+      trap_chain('INT')  { say 'Exiting...'; $exit = true }
 
       loop do
         result = nil
@@ -48,6 +48,17 @@ module Delayed
     def say(text)
       puts text unless @quiet
       logger.info text if logger
+    end
+
+protected
+
+    # http://whynotwiki.com/Ruby_/_Process_management#Installing_a_Signal_Handler_.28trap.29
+    def trap_chain(signal, *args, &block)
+      previous_interrupt_handler = trap(signal) {}
+      trap(signal) do
+        block.call
+        previous_interrupt_handler.call unless previous_interrupt_handler == "DEFAULT"
+      end
     end
 
   end
